@@ -1,1 +1,1 @@
-# Abkowitz-RK4
+Solving Linear Ship Manoeuvring Motion Equations Using Rungekutta Fourth Order Method

@@ -1,6 +1,4 @@
 from ctypes import *
-import os
-import numpy as np
 import matplotlib.pyplot as plt
 
 def realtime_solve(dt,u,v,r,y,o,o_aim,X,Y,theta):

@@ -100,6 +100,7 @@ free = True
 task1 = threading.Thread(target = actuateRudder)
 task1.start()
 fig = plt.figure("press z for zigzag, x for turning, c for free control, a and d controls rudder and press q to quit, space to pause")
+fig.set_size_inches(9,8)
 # 设置一个网格(grid)，行数为2，列数为2，宽度比例为3:1
 gs = gridspec.GridSpec(nrows=2, ncols=2, width_ratios=[1, 1])
 ax = []
@@ -108,6 +109,7 @@ for i in range(4):
 ax[1].set_title("rudder,heading(deg)")
 ax[2].set_title("u,v(normalized)")
 ax[3].set_title("angular speed(deg/s)")
+ax[0].axis('equal')
 
 ln_xy, = ax[0].plot(X, Y, ':', color='red')
 ln_O_AIM, ln_THETA = ax[1].plot(TIME, O_AIM, TIME, THETA)
@@ -120,9 +122,13 @@ bg = fig.canvas.copy_from_bbox(fig.bbox)  # store a copy of everything except an
 fig.canvas.blit(fig.bbox)
 
 while(not stop):
+    start = time.time()
     if(pause):
+        fig.canvas.restore_region(bg)
+        bg = fig.canvas.copy_from_bbox(fig.bbox)
         for axes in ax:
             fig.draw_artist(axes)
+        fig.canvas.blit(fig.bbox)
         fig.canvas.flush_events()
     else:
         Time = dt*t
@@ -154,7 +160,7 @@ while(not stop):
         ln_U.set_ydata(U)
         ln_V.set_ydata(V)
         ln_R.set_ydata(R)
-
+        bg = fig.canvas.copy_from_bbox(fig.bbox)
         # re-render the artist, updating the canvas state, but not the screen
         for axes in ax:
             axes.relim(visible_only=True)
@@ -165,7 +171,11 @@ while(not stop):
         fig.canvas.blit(fig.bbox)  # copy the image to the GUI state, but screen might not be changed yet
         fig.canvas.flush_events()  # flush any pending GUI events, re-painting the screen if needed
         # you can put a pause in if you want to slow things down
-        # plt.pause(.1)
         t+=1
+        end = time.time()
+        if(dt-(end-start)>=0):
+            fig.canvas.start_event_loop(dt-(end-start))
+        else:
+            pass
 task1.join()
     

@@ -102,28 +102,28 @@ task1.start()
 fig = plt.figure("press z for zigzag, x for turning, c for free control, a and d controls rudder and press q to quit, space to pause")
 # 设置一个网格(grid)，行数为2，列数为2，宽度比例为3:1
 gs = gridspec.GridSpec(nrows=2, ncols=2, width_ratios=[1, 1])
-ax0 = fig.add_subplot(gs[0, 0])
-ax1 = fig.add_subplot(gs[0, 1])
-ax2 = fig.add_subplot(gs[1, 0])
-ax3 = fig.add_subplot(gs[1, 1])
-plt.ion()
+ax = []
+for i in range(4):
+    ax.append(fig.add_subplot(gs[i // 2, i % 2], animated=True))
+ax[1].set_title("rudder,heading(deg)")
+ax[2].set_title("u,v(normalized)")
+ax[3].set_title("angular speed(deg/s)")
+
+ln_xy, = ax[0].plot(X, Y, ':', color='red')
+ln_O_AIM, ln_THETA = ax[1].plot(TIME, O_AIM, TIME, THETA)
+ln_U, ln_V = ax[2].plot(TIME, U, TIME, V)
+ln_R, = ax[3].plot(TIME, R)
+
+plt.show(block=False)
+plt.pause(0.01)
+bg = fig.canvas.copy_from_bbox(fig.bbox)  # store a copy of everything except animated artists
+fig.canvas.blit(fig.bbox)
+
 while(not stop):
     if(pause):
-        ax0.scatter(X, Y,c = 'red')
-        ax0.axis('equal')
-        ax0.set_title("time:%.1f rudder aim:%.2f deg / rudder now:%.2f deg"%(Time,o_aim,RtoD(data_t[4])))
-        ax1.plot(TIME,O_AIM,TIME,THETA)
-        ax1.set_title("rudder,heading(deg)")
-        ax2.plot(TIME,U,TIME,V)
-        ax2.set_title("u,v(normalized)")
-        ax3.plot(TIME,R)
-        ax3.set_title("angular speed(deg/s)")
-
-        plt.pause(dt)
-        ax0.clear()
-        ax1.clear()
-        ax2.clear()
-        ax3.clear()
+        for axes in ax:
+            fig.draw_artist(axes)
+        fig.canvas.flush_events()
     else:
         Time = dt*t
         if(zig):
@@ -142,21 +142,30 @@ while(not stop):
         O_AIM.append(o_aim)
         THETA.append(RtoD(data_t[8]))
 
-        ax0.scatter(X, Y,c = 'red')
-        ax0.axis('equal')
-        ax0.set_title("time:%.1f rudder aim:%.2f deg / rudder now:%.2f deg"%(Time,o_aim,RtoD(data_t[4])))
-        ax1.plot(TIME,O_AIM,TIME,THETA)
-        ax1.set_title("rudder,heading(deg)")
-        ax2.plot(TIME,U,TIME,V)
-        ax2.set_title("u,v(normalized)")
-        ax3.plot(TIME,R)
-        ax3.set_title("angular speed(deg/s)")
+        fig.canvas.restore_region(bg)  # reset the background back in the canvas state, screen unchanged
 
-        plt.pause(dt)
-        ax0.clear()
-        ax1.clear()
-        ax2.clear()
-        ax3.clear()
+        # update the artist, neither the canvas state nor the screen have changed
+        ln_xy.set_xdata(X)
+        ln_xy.set_ydata(Y)
+        for line in [ln_O_AIM, ln_THETA, ln_U, ln_V, ln_R]:
+            line.set_xdata(TIME)
+        ln_O_AIM.set_ydata(O_AIM)
+        ln_THETA.set_ydata(THETA)
+        ln_U.set_ydata(U)
+        ln_V.set_ydata(V)
+        ln_R.set_ydata(R)
+
+        # re-render the artist, updating the canvas state, but not the screen
+        for axes in ax:
+            axes.relim(visible_only=True)
+            axes.autoscale_view(scalex=axes.xaxis.get_visible(), scaley=axes.yaxis.get_visible())
+            fig.draw_artist(axes)
+        ax[0].set_title("time:%.1f rudder aim:%.2f deg / rudder now:%.2f deg"%(Time,o_aim,RtoD(data_t[4])))
+
+        fig.canvas.blit(fig.bbox)  # copy the image to the GUI state, but screen might not be changed yet
+        fig.canvas.flush_events()  # flush any pending GUI events, re-painting the screen if needed
+        # you can put a pause in if you want to slow things down
+        # plt.pause(.1)
         t+=1
 task1.join()
     
